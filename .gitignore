@@ -1,0 +1,5 @@
+.env
+/env
+/env/*
+project_notes.txt
+*.mmd

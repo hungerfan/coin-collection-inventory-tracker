@@ -1,6 +1,6 @@
 ```mermaid
 erDiagram
-    COINS {
+    coins {
         int id PK
         int type_id FK
         int year
@@ -13,20 +13,28 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
-    
-    COIN_TYPES {
+
+    coin_types {
         int id PK
         varchar name
         varchar denomination
+        int country_id FK
         varchar metal
     }
-    
-    CONDITIONS {
+
+    conditions {
         int id PK
         varchar name
         text description
     }
-    
-    COINS ||--|| COIN_TYPES : "type_id"
-    COINS ||--|| CONDITIONS : "condition_id"
+
+    countries {
+        int id PK
+        varchar name
+        varchar country_code
+    }
+
+    coins ||--|| coin_types : "type_id"
+    coins ||--|| conditions : "condition_id"
+    coin_types ||--|| countries : "country_id"
 ```
