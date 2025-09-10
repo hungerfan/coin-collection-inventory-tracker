@@ -1,5 +1,13 @@
 .env
 /env
 /env/*
+*.log
 project_notes.txt
 *.mmd
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
