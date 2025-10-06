@@ -1,12 +1,21 @@
-'''Pages module for the Coin Tracker Database.'''
+"""Pages module for the Coin Tracker Database."""
+
 from models.coin import Coin
 from models.coin_type import CoinType
-from database import (get_data_count, get_coins_with_details, save_coin_to_database, get_coin_types, save_coin_type_to_database,
-                      get_conditions, add_coin_type, add_condition)
+from database import (
+    get_data_count,
+    get_coins_with_details,
+    save_coin_to_database,
+    get_coin_types,
+    save_coin_type_to_database,
+    get_conditions,
+    add_coin_type,
+    add_condition,
+)
 
 
 def get_page_header(page_name: str) -> str:
-    '''Get the page header.'''
+    """Get the page header."""
     page_name = f"Coin Tracker Database - {page_name}"
     page_name_length = len(page_name)
     page_header_border = "-" * page_name_length
@@ -17,7 +26,7 @@ def get_page_header(page_name: str) -> str:
 
 
 def main_page():
-    '''Main Page function.'''
+    """Main Page function."""
     while True:
         print(get_page_header("Main Menu"))
         coin_count = get_data_count()
@@ -65,7 +74,7 @@ def main_page():
 
 
 def insert_data_page():
-    '''Insert Data page.'''
+    """Insert Data page."""
     while True:
         print(get_page_header("Insert Data"))
 
@@ -93,7 +102,7 @@ def insert_data_page():
 
 
 def view_coins_page():
-    '''View Coins page.'''
+    """View Coins page."""
     print(get_page_header("View Coins"))
 
     coins = get_coins_with_details()
@@ -104,49 +113,58 @@ def view_coins_page():
         return
 
     # Display coins in a formatted table
-    print(f"{'ID':<4} {'Coin Type':<20} {'Year':<6} {'Mint':<6} {'Condition':<12} {'Qty':<4} {'Value':<8} {'Country':<12} {'Acquired From':<15}")
+    print(
+        f"{'ID':<4} {'Coin Type':<20} {'Year':<6} {'Mint':<6} {'Condition':<12} {'Qty':<4} "
+        f"{'Value':<8} {'Country':<12} {'Acquired From':<15}"
+    )
     print("-" * 120)
 
     for coin in coins:
         # Format the data for display
-        coin_id = str(coin['id'])
-        coin_type = coin['coin_type_name'] or 'Unknown'
-        year = str(coin['year']) if coin['year'] else 'N/A'
-        mint_mark = coin['mint_mark'] or 'N/A'
-        condition = coin['condition_name'] or 'Unknown'
-        quantity = str(coin['quantity']) if coin['quantity'] else 'N/A'
-        value = f"${float(coin['value_estimate']):.2f}" if coin['value_estimate'] else 'N/A'
-        country = coin['country_name'] or 'Unknown'
-        acquired_from = coin['acquired_from'] or 'N/A'
+        coin_id = str(coin["id"])
+        coin_type = coin["coin_type_name"] or "Unknown"
+        year = str(coin["year"]) if coin["year"] else "N/A"
+        mint_mark = coin["mint_mark"] or "N/A"
+        condition = coin["condition_name"] or "Unknown"
+        quantity = str(coin["quantity"]) if coin["quantity"] else "N/A"
+        value = (
+            f"${float(coin['value_estimate']):.2f}" if coin["value_estimate"] else "N/A"
+        )
+        country = coin["country_name"] or "Unknown"
+        acquired_from = coin["acquired_from"] or "N/A"
 
         # Truncate long strings for better display
-        coin_type = coin_type[:18] + '..' if len(coin_type) > 20 else coin_type
-        condition = condition[:10] + '..' if len(condition) > 12 else condition
-        country = country[:10] + '..' if len(country) > 12 else country
-        acquired_from = acquired_from[:13] + \
-            '..' if len(acquired_from) > 15 else acquired_from
+        coin_type = coin_type[:18] + ".." if len(coin_type) > 20 else coin_type
+        condition = condition[:10] + ".." if len(condition) > 12 else condition
+        country = country[:10] + ".." if len(country) > 12 else country
+        acquired_from = (
+            acquired_from[:13] + ".." if len(acquired_from) > 15 else acquired_from
+        )
 
-        print(f"{coin_id:<4} {coin_type:<20} {year:<6} {mint_mark:<6} {condition:<12} {quantity:<4} {value:<8} {country:<12} {acquired_from:<15}")
+        print(
+            f"{coin_id:<4} {coin_type:<20} {year:<6} {mint_mark:<6} {condition:<12} "
+            f"{quantity:<4} {value:<8} {country:<12} {acquired_from:<15}"
+        )
 
     input("\nPress Enter to continue...")
 
 
 def update_data_page():
-    '''Update Data page.'''
+    """Update Data page."""
     print(get_page_header("Update Data"))
     print("Update data functionality coming soon...")
     input("\nPress Enter to continue...")
 
 
 def delete_data_page():
-    '''Delete Data page.'''
+    """Delete Data page."""
     print(get_page_header("Delete Data"))
     print("Delete data functionality coming soon...")
     input("\nPress Enter to continue...")
 
 
 def add_coin_page():
-    '''Add New Coin page.'''
+    """Add New Coin page."""
     print(get_page_header("Add New Coin"))
 
     coin_data = get_coin_input()
@@ -155,7 +173,7 @@ def add_coin_page():
 
 
 def get_coin_input():
-    '''Get coin input from the user.'''
+    """Get coin input from the user."""
     coin = Coin()
 
     coin_types = get_coin_types()
@@ -168,7 +186,7 @@ def get_coin_input():
         try:
             type_choice = int(input("Select coin type: "))
             if 1 <= type_choice <= len(coin_types):
-                coin_type_id = coin_types[type_choice - 1]['id']
+                coin_type_id = coin_types[type_choice - 1]["id"]
                 break
             elif type_choice == len(coin_types) + 1:
                 new_type_name = input("Enter new coin type name: ")
@@ -194,11 +212,12 @@ def get_coin_input():
         try:
             condition_choice = int(input("Select condition: "))
             if 1 <= condition_choice <= len(conditions):
-                condition_id = conditions[condition_choice - 1]['id']
+                condition_id = conditions[condition_choice - 1]["id"]
                 break
             elif condition_choice == len(conditions) + 1:
                 new_condition_name = input(
-                    "Enter new condition name using the Shelldon Scale (e.g. MS-65): ")
+                    "Enter new condition name using the Shelldon Scale (e.g. MS-65): "
+                )
                 condition_id = add_condition(new_condition_name)
                 break
             else:
@@ -216,7 +235,7 @@ def get_coin_input():
 
 
 def get_coin_type_input(new_type_name=None):
-    '''Get coin type input from the user.'''
+    """Get coin type input from the user."""
     coin_type = CoinType()
     coin_type.name = new_type_name
     if new_type_name is None:
@@ -226,38 +245,40 @@ def get_coin_type_input(new_type_name=None):
         print(f"Adding new information for {new_type_name}...")
 
     coin_type.denomination = input(
-        "Enter coin type denomination: (e.g. 1 Dollar, 1 Cent) ")
+        "Enter coin type denomination: (e.g. 1 Dollar, 1 Cent) "
+    )
     coin_type.country_id = input(
-        "Enter coin type country ID: (e.g. 40 for CA, 235 for US) ")
-    coin_type.metal = input(
-        "Enter coin type metal: (e.g. Silver, Copper, Nickel) ")
+        "Enter coin type country ID: (e.g. 40 for CA, 235 for US) "
+    )
+    coin_type.metal = input("Enter coin type metal: (e.g. Silver, Copper, Nickel) ")
 
     return coin_type.to_dict()
 
 
 def add_coin_type_page():
-    '''Add New Coin Type page.'''
+    """Add New Coin Type page."""
     print(get_page_header("Add New Coin Type"))
     coin_type_data = get_coin_type_input()
     coin_type_id = save_coin_type_to_database(coin_type_data)
     print(
-        f"You have added {coin_type_data['name']} successfully with ID {coin_type_id}.")
+        f"You have added {coin_type_data['name']} successfully with ID {coin_type_id}."
+    )
     input("\nPress Enter to continue...")
 
 
 def add_condition_page():
-    '''Add New Condition page.'''
+    """Add New Condition page."""
     print(get_page_header("Add New Condition"))
     new_condition_name = input(
-        "Enter new condition name using the Shelldon Scale (e.g. MS-65): ")
+        "Enter new condition name using the Shelldon Scale (e.g. MS-65): "
+    )
     condition_id = add_condition(new_condition_name)
-    print(
-        f"You have added {new_condition_name} successfully with ID {condition_id}.")
+    print(f"You have added {new_condition_name} successfully with ID {condition_id}.")
     input("\nPress Enter to continue...")
 
 
 def add_country_page():
-    '''Add New Country page.'''
+    """Add New Country page."""
     print(get_page_header("Add New Country"))
     print("Add country functionality coming soon...")
     input("\nPress Enter to continue...")
