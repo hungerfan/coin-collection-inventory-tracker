@@ -33,9 +33,9 @@ The application uses a normalized database design with the following tables:
 1. Clone the repository
 2. Create a virtual environment:
    ```bash
-   python -m venv env
-   env\Scripts\activate  # Windows
-   source env/bin/activate  # Linux/Mac
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   source .venv/bin/activate  # Linux/Mac
    ```
 
 3. Install dependencies:

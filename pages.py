@@ -1,9 +1,11 @@
 '''Pages module for the Coin Tracker Database.'''
-from database import (get_data_count, save_coin_to_database, get_coin_types,
-                      get_conditions, add_coin_type, add_condition, get_countries, add_country)
+from models.coin import Coin
+from models.coin_type import CoinType
+from database import (get_data_count, get_coins_with_details, save_coin_to_database, get_coin_types, save_coin_type_to_database,
+                      get_conditions, add_coin_type, add_condition)
 
 
-def get_page_header(page_name):
+def get_page_header(page_name: str) -> str:
     '''Get the page header.'''
     page_name = f"Coin Tracker Database - {page_name}"
     page_name_length = len(page_name)
@@ -93,7 +95,39 @@ def insert_data_page():
 def view_coins_page():
     '''View Coins page.'''
     print(get_page_header("View Coins"))
-    print("View coins functionality coming soon...")
+
+    coins = get_coins_with_details()
+
+    if not coins:
+        print("No coins found in the database.")
+        input("\nPress Enter to continue...")
+        return
+
+    # Display coins in a formatted table
+    print(f"{'ID':<4} {'Coin Type':<20} {'Year':<6} {'Mint':<6} {'Condition':<12} {'Qty':<4} {'Value':<8} {'Country':<12} {'Acquired From':<15}")
+    print("-" * 120)
+
+    for coin in coins:
+        # Format the data for display
+        coin_id = str(coin['id'])
+        coin_type = coin['coin_type_name'] or 'Unknown'
+        year = str(coin['year']) if coin['year'] else 'N/A'
+        mint_mark = coin['mint_mark'] or 'N/A'
+        condition = coin['condition_name'] or 'Unknown'
+        quantity = str(coin['quantity']) if coin['quantity'] else 'N/A'
+        value = f"${float(coin['value_estimate']):.2f}" if coin['value_estimate'] else 'N/A'
+        country = coin['country_name'] or 'Unknown'
+        acquired_from = coin['acquired_from'] or 'N/A'
+
+        # Truncate long strings for better display
+        coin_type = coin_type[:18] + '..' if len(coin_type) > 20 else coin_type
+        condition = condition[:10] + '..' if len(condition) > 12 else condition
+        country = country[:10] + '..' if len(country) > 12 else country
+        acquired_from = acquired_from[:13] + \
+            '..' if len(acquired_from) > 15 else acquired_from
+
+        print(f"{coin_id:<4} {coin_type:<20} {year:<6} {mint_mark:<6} {condition:<12} {quantity:<4} {value:<8} {country:<12} {acquired_from:<15}")
+
     input("\nPress Enter to continue...")
 
 
@@ -120,10 +154,10 @@ def add_coin_page():
     print("Coin added successfully!")
 
 
-# Add Coin Helper functions
 def get_coin_input():
     '''Get coin input from the user.'''
-    # Get coin type
+    coin = Coin()
+
     coin_types = get_coin_types()
     print("\nAvailable Coin Types:")
     for i, coin_type in enumerate(coin_types, 1):
@@ -134,18 +168,22 @@ def get_coin_input():
         try:
             type_choice = int(input("Select coin type: "))
             if 1 <= type_choice <= len(coin_types):
-                type_id = coin_types[type_choice - 1]['id']
+                coin_type_id = coin_types[type_choice - 1]['id']
                 break
             elif type_choice == len(coin_types) + 1:
                 new_type_name = input("Enter new coin type name: ")
-                type_id = add_coin_type(new_type_name)
+                coin_type_data = get_coin_type_input(new_type_name)
+                coin_type_id = save_coin_type_to_database(coin_type_data)
                 break
             else:
                 print("Invalid choice. Please try again.")
         except ValueError:
             print("Please enter a valid number.")
 
-    # Get condition
+    coin.type_id = coin_type_id  # TODO: validate the inputs for coin data
+    coin.year = input("Year: ")
+    coin.mint_mark = input("Mint Mark: ")
+
     conditions = get_conditions()
     print("\nAvailable Conditions:")
     for i, condition in enumerate(conditions, 1):
@@ -159,7 +197,8 @@ def get_coin_input():
                 condition_id = conditions[condition_choice - 1]['id']
                 break
             elif condition_choice == len(conditions) + 1:
-                new_condition_name = input("Enter new condition name: ")
+                new_condition_name = input(
+                    "Enter new condition name using the Shelldon Scale (e.g. MS-65): ")
                 condition_id = add_condition(new_condition_name)
                 break
             else:
@@ -167,28 +206,53 @@ def get_coin_input():
         except ValueError:
             print("Please enter a valid number.")
 
-    return {
-        "type_id": type_id,
-        "year": input("Year: "),
-        "mint_mark": input("Mint Mark: "),
-        "condition_id": condition_id,
-        "quantity": input("Quantity: "),
-        "value_estimate": input("Value Estimate: "),
-        "acquired_from": input("Acquired From: "),
-        "notes": input("Notes: ")}
+    coin.condition_id = condition_id
+    coin.quantity = input("Quantity: ")
+    coin.value_estimate = input("Value Estimate: ")
+    coin.acquired_from = input("Acquired From: ")
+    coin.notes = input("Notes: ")
+
+    return coin.to_dict()
+
+
+def get_coin_type_input(new_type_name=None):
+    '''Get coin type input from the user.'''
+    coin_type = CoinType()
+    coin_type.name = new_type_name
+    if new_type_name is None:
+        new_type_name = input("Enter new coin type name: ")
+        coin_type.name = new_type_name
+    else:
+        print(f"Adding new information for {new_type_name}...")
+
+    coin_type.denomination = input(
+        "Enter coin type denomination: (e.g. 1 Dollar, 1 Cent) ")
+    coin_type.country_id = input(
+        "Enter coin type country ID: (e.g. 40 for CA, 235 for US) ")
+    coin_type.metal = input(
+        "Enter coin type metal: (e.g. Silver, Copper, Nickel) ")
+
+    return coin_type.to_dict()
 
 
 def add_coin_type_page():
     '''Add New Coin Type page.'''
     print(get_page_header("Add New Coin Type"))
-    print("Add coin type functionality coming soon...")
+    coin_type_data = get_coin_type_input()
+    coin_type_id = save_coin_type_to_database(coin_type_data)
+    print(
+        f"You have added {coin_type_data['name']} successfully with ID {coin_type_id}.")
     input("\nPress Enter to continue...")
 
 
 def add_condition_page():
     '''Add New Condition page.'''
     print(get_page_header("Add New Condition"))
-    print("Add condition functionality coming soon...")
+    new_condition_name = input(
+        "Enter new condition name using the Shelldon Scale (e.g. MS-65): ")
+    condition_id = add_condition(new_condition_name)
+    print(
+        f"You have added {new_condition_name} successfully with ID {condition_id}.")
     input("\nPress Enter to continue...")
 
 
@@ -197,3 +261,7 @@ def add_country_page():
     print(get_page_header("Add New Country"))
     print("Add country functionality coming soon...")
     input("\nPress Enter to continue...")
+
+
+if __name__ == "__main__":
+    main_page()

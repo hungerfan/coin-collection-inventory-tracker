@@ -65,8 +65,67 @@ def get_data_count():
         raise
 
 
+def get_coins():
+    '''Get all coins from the database.'''
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT * FROM coins"
+                cur.execute(sql)
+                result = cur.fetchall()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting coins: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while getting coins: %s", e)
+        raise
+
+
+def get_coins_with_details():
+    '''Get all coins with detailed information including coin type names, condition names, and country names.'''
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = """
+                SELECT
+                    c.id,
+                    c.year,
+                    c.mint_mark,
+                    c.quantity,
+                    c.value_estimate,
+                    c.acquired_from,
+                    c.notes,
+                    c.created_at,
+                    c.updated_at,
+                    ct.name as coin_type_name,
+                    ct.denomination,
+                    ct.metal,
+                    cond.name as condition_name,
+                    cond.description as condition_description,
+                    country.name as country_name,
+                    country.country_code
+                FROM coins c
+                LEFT JOIN coin_types ct ON c.type_id = ct.id
+                LEFT JOIN conditions cond ON c.condition_id = cond.id
+                LEFT JOIN countries country ON ct.country_id = country.id
+                ORDER BY c.id
+                """
+                cur.execute(sql)
+                result = cur.fetchall()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting coins with details: %s", e)
+        raise
+    except Exception as e:
+        logger.error(
+            "Unexpected error while getting coins with details: %s", e)
+        raise
+
+
 def save_coin_to_database(coin_data):
     '''Save coin data to the database.'''
+    print(f"Saving coin data: {coin_data}")
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
@@ -106,19 +165,43 @@ def get_coin_types():
 
 
 def add_coin_type(name):
-    '''Add a new coin type to the database.'''
+    '''
+    Add a new coin type to the database.
+
+    @param name: The name of the coin type.
+    @return: inserted id of the coin type.
+    '''
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
                 sql = "INSERT INTO coin_types (name) VALUES (%s)"
-                cur.execute(sql, (name,))
+                cur.execute(sql, (name))
                 conn.commit()
-                return True
+                return cur.lastrowid
     except pymysql.Error as e:
         logger.error("Database error while adding coin type: %s", e)
         raise
     except Exception as e:
         logger.error("Unexpected error while adding coin type: %s", e)
+        raise
+
+
+def save_coin_type_to_database(coin_type_data):
+    '''Save coin type data to the database.'''
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = ("INSERT INTO coin_types (name, denomination, country_id, metal) VALUES "
+                       "(%s, %s, %s, %s)")
+                cur.execute(sql, (coin_type_data['name'], coin_type_data['denomination'],
+                            coin_type_data['country_id'], coin_type_data['metal']))
+                conn.commit()
+                return cur.lastrowid
+    except pymysql.Error as e:
+        logger.error("Database error while saving coin type data: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while saving coin type data: %s", e)
         raise
 
 
@@ -140,14 +223,19 @@ def get_conditions():
 
 
 def add_condition(name):
-    '''Add a new condition to the database.'''
+    '''
+    Add a new condition to the database.
+
+    @param name: The name of the condition.
+    @return: inserted id of the condition.
+    '''
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
                 sql = "INSERT INTO conditions (name) VALUES (%s)"
-                cur.execute(sql, (name,))
+                cur.execute(sql, (name))
                 conn.commit()
-                return True
+                return cur.lastrowid
     except pymysql.Error as e:
         logger.error("Database error while adding condition: %s", e)
         raise
