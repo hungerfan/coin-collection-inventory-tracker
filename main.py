@@ -1,3 +1,5 @@
+"""Main module for the Coin Tracker Database."""
+
 import sys
 from pages import main_page
 

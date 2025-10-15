@@ -36,7 +36,8 @@ def connect_to_database():
             port=DB_PORT,
             cursorclass=pymysql.cursors.DictCursor,
         )
-        logger.info("Successfully connected to database: %s on %s", DB_NAME, DB_HOST)
+        logger.info("Successfully connected to database: %s on %s",
+                    DB_NAME, DB_HOST)
         return conn
     except pymysql.Error as e:
         logger.error("Database connection failed: %s", e)
@@ -118,7 +119,8 @@ def get_coins_with_details():
         logger.error("Database error while getting coins with details: %s", e)
         raise
     except Exception as e:
-        logger.error("Unexpected error while getting coins with details: %s", e)
+        logger.error(
+            "Unexpected error while getting coins with details: %s", e)
         raise
 
 
@@ -174,28 +176,6 @@ def get_coin_types():
         raise
 
 
-def add_coin_type(name):
-    """
-    Add a new coin type to the database.
-
-    @param name: The name of the coin type.
-    @return: inserted id of the coin type.
-    """
-    try:
-        with connect_to_database() as conn:
-            with conn.cursor() as cur:
-                sql = "INSERT INTO coin_types (name) VALUES (%s)"
-                cur.execute(sql, (name))
-                conn.commit()
-                return cur.lastrowid
-    except pymysql.Error as e:
-        logger.error("Database error while adding coin type: %s", e)
-        raise
-    except Exception as e:
-        logger.error("Unexpected error while adding coin type: %s", e)
-        raise
-
-
 def save_coin_type_to_database(coin_type_data):
     """Save coin type data to the database."""
     try:
@@ -241,7 +221,7 @@ def get_conditions():
         raise
 
 
-def add_condition(name):
+def save_condition_to_database(condition_data):
     """
     Add a new condition to the database.
 
@@ -251,8 +231,9 @@ def add_condition(name):
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
-                sql = "INSERT INTO conditions (name) VALUES (%s)"
-                cur.execute(sql, (name))
+                sql = "INSERT INTO conditions (name, description) VALUES (%s, %s)"
+                cur.execute(
+                    sql, (condition_data["name"], condition_data["description"]))
                 conn.commit()
                 return cur.lastrowid
     except pymysql.Error as e:
@@ -280,15 +261,23 @@ def get_countries():
         raise
 
 
-def add_country(name, country_code):
+def save_country_to_database(country_data):
     """Add a new country to the database."""
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
-                sql = "INSERT INTO countries (name, country_code) VALUES (%s, %s)"
-                cur.execute(sql, (name, country_code))
-                conn.commit()
-                return True
+                cur.execute("SELECT id FROM countries WHERE country_code = %s",
+                            (country_data["country_code"],))
+                if cur.fetchone():
+                    # country code already exists
+                    return None
+                else:
+                    sql = "INSERT INTO countries (name, country_code) VALUES (%s, %s)"
+                    cur.execute(
+                        sql, (country_data["name"], country_data["country_code"]))
+                    conn.commit()
+                    return cur.lastrowid
+
     except pymysql.Error as e:
         logger.error("Database error while adding country: %s", e)
         raise
