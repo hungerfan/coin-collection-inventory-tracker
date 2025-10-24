@@ -83,8 +83,26 @@ def get_coins():
         raise
 
 
+def get_coin_by_id(coin_id: str):
+    """Get a coin by its ID."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT * FROM coins WHERE id = %s"
+                cur.execute(sql, (int(coin_id)))
+                result = cur.fetchone()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting coin by ID: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while getting coin by ID: %s", e)
+        raise
+
+
 def get_coins_with_details():
-    """Get all coins with detailed information including coin type names, condition names, and country names."""
+    """Get all coins with detailed information including coin type names, condition names,
+       country names and codes."""
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
@@ -132,8 +150,8 @@ def save_coin_to_database(coin_data):
             with conn.cursor() as cur:
                 sql = (
                     "INSERT INTO coins (type_id, year, mint_mark, condition_id, quantity, "
-                    "value_estimate, acquired_from, notes) VALUES "
-                    "(%s, %s, %s, %s, %s, %s, %s, %s)"
+                    "value_estimate, acquired_from, notes, created_at) VALUES "
+                    "(%s, %s, %s, %s, %s, %s, %s, %s, NOW())"
                 )
                 cur.execute(
                     sql,
@@ -145,7 +163,7 @@ def save_coin_to_database(coin_data):
                         coin_data["quantity"],
                         coin_data["value_estimate"],
                         coin_data["acquired_from"],
-                        coin_data["notes"],
+                        coin_data["notes"]
                     ),
                 )
                 conn.commit()
@@ -159,12 +177,75 @@ def save_coin_to_database(coin_data):
         raise
 
 
+def update_coin_in_database(coin_data):
+    """Update coin data in the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = (
+                    "UPDATE coins SET type_id = %s, year = %s, mint_mark = %s, condition_id = %s, "
+                    "quantity = %s, value_estimate = %s, acquired_from = %s, notes = %s, "
+                    "updated_at = NOW() WHERE id = %s"
+                )
+                cur.execute(
+                    sql,
+                    (
+                        coin_data["type_id"],
+                        coin_data["year"],
+                        coin_data["mint_mark"],
+                        coin_data["condition_id"],
+                        coin_data["quantity"],
+                        coin_data["value_estimate"],
+                        coin_data["acquired_from"],
+                        coin_data["notes"],
+                        coin_data["id"]
+                    )
+                )
+                logger.info("Coin data updated in database: %s", coin_data)
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while updating coin data: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while updating coin data: %s", e)
+        raise
+
+
+def get_coin_type_by_id(coin_type_id: str):
+    """Get a coin type by its ID."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT * FROM coin_types WHERE id = %s"
+                cur.execute(sql, (int(coin_type_id)))
+                result = cur.fetchone()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting coin type by ID: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while getting coin type by ID: %s", e)
+        raise
+
+
 def get_coin_types():
     """Get all coin types from the database."""
     try:
         with connect_to_database() as conn:
             with conn.cursor() as cur:
-                sql = "SELECT * FROM coin_types"
+                sql = """
+                SELECT
+                    ct.id,
+                    ct.name,
+                    ct.denomination,
+                    ct.metal,
+                    country.name as country_name,
+                    country.country_code
+                FROM coin_types ct
+                LEFT JOIN countries country ON ct.country_id = country.id
+                ORDER BY country.name, ct.name
+                """
                 cur.execute(sql)
                 result = cur.fetchall()
                 return result
@@ -192,7 +273,7 @@ def save_coin_type_to_database(coin_type_data):
                         coin_type_data["denomination"],
                         coin_type_data["country_id"],
                         coin_type_data["metal"],
-                    ),
+                    )
                 )
                 conn.commit()
                 return cur.lastrowid
@@ -201,6 +282,35 @@ def save_coin_type_to_database(coin_type_data):
         raise
     except Exception as e:
         logger.error("Unexpected error while saving coin type data: %s", e)
+        raise
+
+
+def update_coin_type_in_database(coin_type_data):
+    """Update coin type data in the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = (
+                    "UPDATE coin_types SET name = %s, denomination = %s, country_id = %s, "
+                    "metal = %s WHERE id = %s"
+                )
+                cur.execute(
+                    sql,
+                    (
+                        coin_type_data["name"],
+                        coin_type_data["denomination"],
+                        coin_type_data["country_id"],
+                        coin_type_data["metal"],
+                        coin_type_data["id"]
+                    )
+                )
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while updating coin type data: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while updating coin type data: %s", e)
         raise
 
 
@@ -258,6 +368,23 @@ def get_countries():
         raise
     except Exception as e:
         logger.error("Unexpected error while getting countries: %s", e)
+        raise
+
+
+def get_country_id_by_code(country_code):
+    """Get the country ID by country code."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT id FROM countries WHERE country_code = %s"
+                cur.execute(sql, (country_code,))
+                return cur.fetchone()["id"]
+    except pymysql.Error as e:
+        logger.error("Database error while getting country ID by code: %s", e)
+        raise
+    except Exception as e:
+        logger.error(
+            "Unexpected error while getting country ID by code: %s", e)
         raise
 
 

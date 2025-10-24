@@ -93,16 +93,19 @@ class Coin(BaseModel):  # pylint: disable=too-many-instance-attributes
 
 # TODO: remove this main function before deployment
 if __name__ == "__main__":
+    selected_coin = {
+        "id": 1,
+        "type_id": 1,
+        "year": 1890,
+        "mint_mark": "D",
+        "condition_id": "VF-20",
+        "quantity": 1,
+        "value_estimate": 45.00,
+        "acquired_from": "Bar",
+        "notes": "Test Coin",
+    }
     coin = Coin(
-        id=1,
-        type_id=1,
-        year=1900,
-        mint_mark="D",
-        condition_id="VF-20",
-        quantity=1,
-        value_estimate=45.00,
-        acquired_from="Bar",
-        notes="Test Coin",
+        **selected_coin
     )
 
     coin2 = Coin()
