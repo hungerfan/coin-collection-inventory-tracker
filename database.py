@@ -168,7 +168,7 @@ def save_coin_to_database(coin_data):
                 )
                 conn.commit()
                 logger.info("Coin data saved to database: %s", coin_data)
-                return True
+                return cur.lastrowid
     except pymysql.Error as e:
         logger.error("Database error while saving coin data: %s", e)
         raise
@@ -331,6 +331,23 @@ def get_conditions():
         raise
 
 
+def get_condition_by_id(condition_id: str):
+    """Get a condition by its ID."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT * FROM conditions WHERE id = %s"
+                cur.execute(sql, (int(condition_id)))
+                result = cur.fetchone()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting condition by ID: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while getting condition by ID: %s", e)
+        raise
+
+
 def save_condition_to_database(condition_data):
     """
     Add a new condition to the database.
@@ -343,7 +360,12 @@ def save_condition_to_database(condition_data):
             with conn.cursor() as cur:
                 sql = "INSERT INTO conditions (name, description) VALUES (%s, %s)"
                 cur.execute(
-                    sql, (condition_data["name"], condition_data["description"]))
+                    sql,
+                    (
+                        condition_data["name"],
+                        condition_data["description"]
+                    )
+                )
                 conn.commit()
                 return cur.lastrowid
     except pymysql.Error as e:
@@ -351,6 +373,30 @@ def save_condition_to_database(condition_data):
         raise
     except Exception as e:
         logger.error("Unexpected error while adding condition: %s", e)
+        raise
+
+
+def update_condition_in_database(condition_data):
+    """Update condition data in the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "UPDATE conditions SET name = %s, description = %s WHERE id = %s"
+                cur.execute(
+                    sql,
+                    (
+                        condition_data["name"],
+                        condition_data["description"],
+                        condition_data["id"]
+                    )
+                )
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while updating condition data: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while updating condition data: %s", e)
         raise
 
 
@@ -368,6 +414,23 @@ def get_countries():
         raise
     except Exception as e:
         logger.error("Unexpected error while getting countries: %s", e)
+        raise
+
+
+def get_country_by_id(country_id: str):
+    """Get a country by its ID."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "SELECT * FROM countries WHERE id = %s"
+                cur.execute(sql, (int(country_id)))
+                result = cur.fetchone()
+                return result
+    except pymysql.Error as e:
+        logger.error("Database error while getting country by ID: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while getting country by ID: %s", e)
         raise
 
 
@@ -401,7 +464,12 @@ def save_country_to_database(country_data):
                 else:
                     sql = "INSERT INTO countries (name, country_code) VALUES (%s, %s)"
                     cur.execute(
-                        sql, (country_data["name"], country_data["country_code"]))
+                        sql,
+                        (
+                            country_data["name"],
+                            country_data["country_code"]
+                        )
+                    )
                     conn.commit()
                     return cur.lastrowid
 
@@ -410,4 +478,96 @@ def save_country_to_database(country_data):
         raise
     except Exception as e:
         logger.error("Unexpected error while adding country: %s", e)
+        raise
+
+
+def update_country_in_database(country_data):
+    """Update country data in the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "UPDATE countries SET name = %s, country_code = %s WHERE id = %s"
+                cur.execute(
+                    sql,
+                    (
+                        country_data["name"],
+                        country_data["country_code"],
+                        country_data["id"]
+                    )
+                )
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while updating country data: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while updating country data: %s", e)
+        raise
+
+
+def delete_coin_from_database(coin_id: str):
+    """Delete a coin from the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "DELETE FROM coins WHERE id = %s"
+                cur.execute(sql, (int(coin_id)))
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while deleting coin: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while deleting coin: %s", e)
+        raise
+
+
+def delete_coin_type_from_database(coin_type_id: str):
+    """Delete a coin type from the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "DELETE FROM coin_types WHERE id = %s"
+                cur.execute(sql, (int(coin_type_id)))
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while deleting coin type: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while deleting coin type: %s", e)
+        raise
+
+
+def delete_condition_from_database(condition_id: str):
+    """Delete a condition from the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "DELETE FROM conditions WHERE id = %s"
+                cur.execute(sql, (int(condition_id)))
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while deleting condition: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while deleting condition: %s", e)
+        raise
+
+
+def delete_country_from_database(country_id: str):
+    """Delete a country from the database."""
+    try:
+        with connect_to_database() as conn:
+            with conn.cursor() as cur:
+                sql = "DELETE FROM countries WHERE id = %s"
+                cur.execute(sql, (int(country_id)))
+                conn.commit()
+                return True
+    except pymysql.Error as e:
+        logger.error("Database error while deleting country: %s", e)
+        raise
+    except Exception as e:
+        logger.error("Unexpected error while deleting country: %s", e)
         raise

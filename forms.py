@@ -14,8 +14,11 @@ from database import (
     get_coin_type_by_id,
     save_coin_type_to_database,
     get_conditions,
+    get_condition_by_id,
     save_condition_to_database,
-    get_country_id_by_code
+    get_countries,
+    get_country_id_by_code,
+    get_country_by_id
 )
 
 
@@ -66,7 +69,6 @@ def _collect_coin_data(existing_coin: Coin = None) -> dict:
 
     # TODO: validate the inputs for coin data
     coin.type_id = _select_coin_type(get_existing_coin_data("type_id"))
-    print(f"Coin Type ID: {coin.type_id}")
     coin.year = int(_input_with_quit_check(
         "Year: ", get_existing_coin_data("year")))
     coin.mint_mark = _input_with_quit_check(
@@ -83,6 +85,55 @@ def _collect_coin_data(existing_coin: Coin = None) -> dict:
         "Notes: ", get_existing_coin_data("notes"))
 
     return coin.to_dict()
+
+
+def _collect_coin_type_data(existing_coin_type: CoinType = None) -> dict:
+    coin_type = existing_coin_type if existing_coin_type else CoinType()
+
+    def get_existing_coin_type_data(attr: str) -> dict:
+        return getattr(existing_coin_type, attr, None) if existing_coin_type else None
+
+    coin_type.name = _input_with_quit_check(
+        "Enter new coin type name: ", get_existing_coin_type_data("name"))
+    coin_type.denomination = _input_with_quit_check(
+        "Enter coin type denomination: (e.g. 1 Dollar, 1 Cent) ",
+        get_existing_coin_type_data("denomination"))
+    coin_type.country_id = _select_country(
+        get_existing_coin_type_data("country_id"))
+    coin_type.metal = _input_with_quit_check(
+        "Enter coin type metal: (e.g. Silver, Copper, Nickel) ",
+        get_existing_coin_type_data("metal"))
+
+    return coin_type.to_dict()
+
+
+def _collect_condition_data(existing_condition: Condition = None) -> dict:
+    condition = existing_condition if existing_condition else Condition()
+
+    def get_existing_condition_data(attr: str) -> dict:
+        return getattr(existing_condition, attr, None) if existing_condition else None
+
+    condition.name = _input_with_quit_check(
+        "Enter new condition name using the Shelldon Scale (e.g. MS-65): ", get_existing_condition_data("name"))
+    condition.description = _input_with_quit_check(
+        "Enter condition description: (e.g. Mint State 65, Very Fine 20) ", get_existing_condition_data("description"))
+
+    return condition.to_dict()
+
+
+def _collect_country_data(existing_country: Country = None) -> dict:
+    country = existing_country if existing_country else Country()
+
+    def get_existing_country_data(attr: str) -> dict:
+        return getattr(existing_country, attr, None) if existing_country else None
+
+    country.name = _input_with_quit_check(
+        "Enter new country name: ", get_existing_country_data("name"))
+
+    country.country_code = _input_with_quit_check(
+        "Enter new country code: ", get_existing_country_data("country_code"))
+
+    return country.to_dict()
 
 
 def _select_coin_type(selected_coin_type_id: int = None) -> int:
@@ -163,6 +214,33 @@ def _select_condition(selected_condition_id: int = None) -> int:
     return condition_id
 
 
+def _select_country(selected_country_id: int = None) -> int:
+    # Display selected country code based off id passed and let user enter a new country code if they want to and pass country id back to the caller
+    countries = get_countries()
+    default_country_code = None
+
+    if selected_country_id:
+        for country in countries:
+            if country['id'] == selected_country_id:
+                default_country_code = country['country_code']
+                break
+
+    while True:
+        try:
+            country_code = _input_with_quit_check(
+                "Enter coin type country code: (e.g. CA, US, etc...) ", default_country_code)
+            if country_code is not None:
+                break
+            else:
+                print("Invalid country code. Please try again.")
+        except ValueError:
+            print("Please enter a valid country code.")
+        except UserCancelledError:
+            return None
+
+    return get_country_id_by_code(country_code)
+
+
 def get_coin_input() -> dict:
     """Get coin input from the user."""
     coin_data = _collect_coin_data()
@@ -172,42 +250,25 @@ def get_coin_input() -> dict:
 
 def get_coin_type_input() -> dict:
     """Get coin type input from the user."""
-    coin_type = CoinType()
-    new_type_name = _input_with_quit_check("Enter new coin type name: ")
-    coin_type.name = new_type_name
-    coin_type.denomination = _input_with_quit_check(
-        "Enter coin type denomination: (e.g. 1 Dollar, 1 Cent) "
-    )
-    country_code = _input_with_quit_check(
-        "Enter coin type country code: (e.g. CA, US, etc...) "
-    )
-    coin_type.country_id = get_country_id_by_code(country_code)
-    coin_type.metal = _input_with_quit_check(
-        "Enter coin type metal: (e.g. Silver, Copper, Nickel) ")
+    coin_type_data = _collect_coin_type_data()
 
-    return coin_type.to_dict()
+    return coin_type_data
 
 
 def get_condition_input() -> dict:
     """Get condition input from the user."""
-    condition = Condition()
-    new_condition_name = _input_with_quit_check(
-        "Enter new condition name using the Shelldon Scale (e.g. MS-65): ")
-    condition.name = new_condition_name
-    condition.description = _input_with_quit_check(
-        "Enter condition description: (e.g. Mint State 65, Very Fine 20) ")
 
-    return condition.to_dict()
+    condition_data = _collect_condition_data()
+
+    return condition_data
 
 
 def get_country_input() -> dict:
     """Get country input from the user."""
-    country = Country()
-    new_country_name = _input_with_quit_check("Enter new country name: ")
-    country.name = new_country_name
-    country.country_code = _input_with_quit_check("Enter new country code: ")
 
-    return country.to_dict()
+    country_data = _collect_country_data()
+
+    return country_data
 
 
 def get_updated_coin_input(coin_id: str) -> dict:
@@ -227,9 +288,93 @@ def get_updated_coin_type_input(coin_type_id: str) -> dict:
     selected_coin_type = get_coin_type_by_id(coin_type_id)
     coin_type = CoinType(**selected_coin_type)
 
-    print("\n** Press Enter to keep current value, or type new value **\n")
+    coin_type_data = _collect_coin_type_data(coin_type)
 
-    coin_type_data = get_coin_type_input()
-    coin_type_id = save_coin_type_to_database(coin_type_data)
+    return coin_type_data
 
-    return coin_type.to_dict()
+
+def get_updated_condition_input(condition_id: str) -> dict:
+    """Get updated condition input from the user with current values as defaults."""
+    selected_condition = get_condition_by_id(condition_id)
+    condition = Condition(**selected_condition)
+
+    condition_data = _collect_condition_data(condition)
+
+    return condition_data
+
+
+def get_updated_country_input(country_id: str) -> dict:
+    """Get updated country input from the user with current values as defaults."""
+    selected_country = get_country_by_id(country_id)
+    country = Country(**selected_country)
+
+    country_data = _collect_country_data(country)
+
+    return country_data
+
+
+def confirm_delete_coin_input(coin: dict) -> str:
+    """Get confirm delete coin input from the user."""
+    print("\n** Type 'DELETE' to delete the following coin, or 'QUIT' to cancel: **\n")
+    print(f"Coin ID: {coin['id']}")
+    print(f"Coin Type: {coin['coin_type_name']}")
+    print(f"Coin Year: {coin['year']}")
+    print(f"Coin Mint Mark: {coin['mint_mark']}")
+    print(f"Coin Condition: {coin['condition_name']}")
+    print(f"Coin Quantity: {coin['quantity']}")
+    print(f"Coin Value Estimate: {coin['value_estimate']}")
+    print(f"Coin Acquired From: {coin['acquired_from']}\n")
+
+    while True:
+        confirmation = _input_with_quit_check("Confirm delete coin: ")
+        if confirmation.upper() == "DELETE":
+            return "DELETE"
+        else:
+            print("** Invalid input. Type 'DELETE' to confirm or 'QUIT' to cancel. **\n")
+
+
+def confirm_delete_coin_type_input(coin_type: dict) -> str:
+    """Get confirm delete coin type input from the user."""
+    print("\n** Type 'DELETE' to delete the following coin type, or 'QUIT' to cancel: **\n")
+    print(f"Coin Type ID: {coin_type['id']}")
+    print(f"Coin Type Name: {coin_type['name']}")
+    print(f"Coin Type Denomination: {coin_type['denomination']}")
+    print(f"Coin Type Country: {coin_type['country_name']}")
+    print(f"Coin Type Metal: {coin_type['metal']}\n")
+
+    while True:
+        confirmation = _input_with_quit_check("Confirm delete coin type: ")
+        if confirmation.upper() == "DELETE":
+            return "DELETE"
+        else:
+            print("** Invalid input. Type 'DELETE' to confirm or 'QUIT' to cancel. **\n")
+
+
+def confirm_delete_condition_input(condition: dict) -> str:
+    """Get confirm delete condition input from the user."""
+    print("\n** Type 'DELETE' to delete the following condition, or 'QUIT' to cancel: **\n")
+    print(f"Condition ID: {condition['id']}")
+    print(f"Condition Name: {condition['name']}")
+    print(f"Condition Description: {condition['description']}\n")
+
+    while True:
+        confirmation = _input_with_quit_check("Confirm delete condition: ")
+        if confirmation.upper() == "DELETE":
+            return "DELETE"
+        else:
+            print("** Invalid input. Type 'DELETE' to confirm or 'QUIT' to cancel. **\n")
+
+
+def confirm_delete_country_input(country: dict) -> str:
+    """Get confirm delete country input from the user."""
+    print("\n** Type 'DELETE' to delete the following country, or 'QUIT' to cancel: **\n")
+    print(f"Country ID: {country['id']}")
+    print(f"Country Name: {country['name']}")
+    print(f"Country Code: {country['country_code']}\n")
+
+    while True:
+        confirmation = _input_with_quit_check("Confirm delete country: ")
+        if confirmation.upper() == "DELETE":
+            return "DELETE"
+        else:
+            print("** Invalid input. Type 'DELETE' to confirm or 'QUIT' to cancel. **\n")
