@@ -1,4 +1,10 @@
-"""Pages module for the Coin Tracker Database."""
+"""Pages module for the Coin Tracker Database.
+
+Contains all page/view functions for the terminal-based UI including
+main menu, insert, update, delete, and view operations.
+"""
+
+from typing import List, Dict, Any, Callable, Optional
 from forms import (
     get_coin_input,
     get_coin_type_input,
@@ -16,13 +22,17 @@ from forms import (
 )
 from database import (
     get_data_count,
+    get_coin_by_id,
     get_coins_with_details,
     save_coin_to_database,
     get_coin_types,
+    get_coin_type_by_id,
     save_coin_type_to_database,
     get_conditions,
+    get_condition_by_id,
     save_condition_to_database,
     get_countries,
+    get_country_by_id,
     save_country_to_database,
     update_coin_in_database,
     update_coin_type_in_database,
@@ -33,53 +43,81 @@ from database import (
     delete_condition_from_database,
     delete_country_from_database
 )
+from constants import (
+    TABLE_WIDTH,
+    MSG_ENTER_CHOICE,
+    MSG_INVALID_CHOICE,
+    MSG_OPERATION_CANCELLED,
+    MSG_PRESS_ENTER_PROMPT,
+    MSG_QUIT_INSTRUCTION
+)
 
+
+# ============================================================================
+# MESSAGE HELPER FUNCTIONS
+# ============================================================================
 
 def _get_page_header(page_name: str, show_quit_message: bool = False) -> str:
-    """Get the page header."""
+    """Generate page header with title and optional quit message.
+
+    Args:
+        page_name: Name of the page to display
+        show_quit_message: Whether to show quit instructions
+
+    Returns:
+        Formatted header string
+    """
     page_title = f"Coin Tracker Database - {page_name}"
     page_title_length = len(page_title)
     page_header_border = "-" * page_title_length
 
     page_header = f"\n{page_header_border}\n{page_title}\n{page_header_border}\n"
     if show_quit_message:
-        page_header += "Enter 'quit' at any time to cancel the operation\n"
+        page_header += MSG_QUIT_INSTRUCTION
 
     return page_header
 
 
 def _success_add_message(name: str, uid: int) -> str:
-    """Get the success add message."""
+    """Generate success message for add operations."""
     return f"** You have added {name} successfully with ID {uid}. **\n"
 
 
 def _success_update_message(name: str) -> str:
-    """Get the success update message."""
+    """Generate success message for update operations."""
     return f"** The {name} has been updated successfully. **\n"
 
 
 def _success_delete_message(name: str) -> str:
-    """Get the success delete message."""
+    """Generate success message for delete operations."""
     return f"** You have deleted the {name} successfully. **\n"
 
 
 def _failure_message(name: str) -> str:
-    """Get the failure message."""
+    """Generate failure message for operations."""
     return f"\n** Failed to {name}. **\n"
 
 
 def _invalid_choice_message() -> str:
     """Get the invalid choice message."""
-    return "\n** Invalid choice. Please try again. **\n"
+    return MSG_INVALID_CHOICE
 
 
 def _operation_cancelled_message() -> str:
     """Get the operation cancelled message."""
-    return "\n** Operation cancelled. Returning to menu. **\n"
+    return MSG_OPERATION_CANCELLED
 
 
-def _display_main_menu(coin_count: int):
-    """Display the main menu options."""
+# ============================================================================
+# DISPLAY FUNCTIONS
+# ============================================================================
+
+def _display_main_menu(coin_count: int) -> None:
+    """Display the main menu options.
+
+    Args:
+        coin_count: Number of coins in the database
+    """
     coin_text = f"There is {coin_count} coin" if coin_count == 1 else \
         f"There are {coin_count} coins"
     if coin_count == 0:
@@ -99,7 +137,15 @@ def _display_main_menu(coin_count: int):
 
 
 def _handle_main_menu_choice(choice: str, has_coins: bool) -> bool:
-    """Handle user menu choice. Returns True to continue, False to exit."""
+    """Handle user menu choice.
+
+    Args:
+        choice: User's menu selection
+        has_coins: Whether database has coins
+
+    Returns:
+        True to continue, False to exit
+    """
     if has_coins:
         menu_actions = {
             "1": view_coins_page,
@@ -124,11 +170,71 @@ def _handle_main_menu_choice(choice: str, has_coins: bool) -> bool:
     return True
 
 
-def _display_coins_list(coins, page_name: str = None):
-    """Display the coins list."""
+def _handle_list_operation(
+    page_name: str,
+    get_items_func: Callable,
+    display_func: Callable,
+    operation_func: Callable,
+    prompt: str,
+    success_msg: str,
+    failure_msg: str
+) -> None:
+    """Generic handler for list-based operations (update/delete).
+
+    Args:
+        page_name: Name of the page to display
+        get_items_func: Function to fetch list of items from database
+        display_func: Function to display the items list
+        operation_func: Function to perform the operation (update/delete)
+        prompt: User prompt for selecting an item
+        success_msg: Message to display on success
+        failure_msg: Message to display on failure
+    """
+    print(_get_page_header(page_name))
+    show_list = True
+
+    while True:
+        if show_list:
+            items = get_items_func()
+            display_func(items)
+            show_list = False
+
+        try:
+            choice = input(f"\n{prompt}: ")
+            if choice == str(len(items) + 1):
+                return
+
+            result = operation_func(str(items[int(choice) - 1]["id"]))
+            if result is not None and result >= 0:
+                if result == 0:
+                    print("No changes were made.")
+                else:
+                    print(success_msg)
+            else:
+                print(failure_msg)
+
+            input(MSG_PRESS_ENTER_PROMPT)
+            show_list = True
+        except (ValueError, IndexError):
+            print(_invalid_choice_message())
+        except UserCancelledError:
+            print(_operation_cancelled_message())
+            show_list = True
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            show_list = True
+
+
+def _display_coins_list(coins: List[Dict[str, Any]], page_name: Optional[str] = None) -> None:
+    """Display the coins list in formatted table.
+
+    Args:
+        coins: List of coin dictionaries
+        page_name: Optional page name to show back button
+    """
     if not coins:
-        print("No coins found in the database.")
-        input("\nPress Enter to continue...")
+        print("No coins found in the database.\n")
+        input(MSG_PRESS_ENTER_PROMPT)
         return
 
     # Display coins in a formatted table
@@ -136,7 +242,7 @@ def _display_coins_list(coins, page_name: str = None):
         f"{'':<3} {'':<1} {'Coin Type':<20} {'Year':<6} {'Mint':<6} {'Condition':<12} "
         f"{'Qty':<4} {'Value':<8} {'Country':<12} {'Acquired From':<15}"
     )
-    print("-" * 100)
+    print("-" * TABLE_WIDTH)
 
     coin_row_template = (
         "{count:>3} {dash:<1} {type:<20} {year:<6} {mint:<6} {cond:<12} "
@@ -199,13 +305,18 @@ def _display_coins_list(coins, page_name: str = None):
             country='',
             received_from=''
         ))
+    print("\n")
 
 
-def _display_coin_types_list(coin_types):
-    """Display the coin types list."""
+def _display_coin_types_list(coin_types: List[Dict[str, Any]]) -> None:
+    """Display the coin types list in formatted table.
+
+    Args:
+        coin_types: List of coin type dictionaries
+    """
     if not coin_types:
-        print("No coin types found in the database.")
-        input("\nPress Enter to continue...")
+        print("No coin types found in the database.\n")
+        input(MSG_PRESS_ENTER_PROMPT)
         return
 
     # Display coin types in a formatted table
@@ -213,7 +324,7 @@ def _display_coin_types_list(coin_types):
         f"{'':<3} {'':<1} {'Coin Type':<20} {'Denomination':<15} {'Country':<12} "
         f"{'Metal':<10}"
     )
-    print("-" * 100)
+    print("-" * TABLE_WIDTH)
 
     coin_type_row_template = (
         "{count:>3} {dash:<1} {type:<20} {denom:<15} {country:<12} {metal:<10}"
@@ -258,15 +369,19 @@ def _display_coin_types_list(coin_types):
     ))
 
 
-def _display_conditions_list(conditions):
-    """Display the conditions list."""
+def _display_conditions_list(conditions: List[Dict[str, Any]]) -> None:
+    """Display the conditions list in formatted table.
+
+    Args:
+        conditions: List of condition dictionaries
+    """
     if not conditions:
-        print("No conditions found in the database.")
-        input("\nPress Enter to continue...")
+        print("No conditions found in the database.\n")
+        input(MSG_PRESS_ENTER_PROMPT)
         return
 
     print(f"{'':<3} {'':<1} {'Condition':<10} {'Description':<75}")
-    print("-" * 100)
+    print("-" * TABLE_WIDTH)
 
     condition_row_template = (
         "{count:>3} {dash:<1} {type:<10} {description:<75}"
@@ -303,15 +418,19 @@ def _display_conditions_list(conditions):
     ))
 
 
-def _display_countries_list(countries):
-    """Display the countries list."""
+def _display_countries_list(countries: List[Dict[str, Any]]) -> None:
+    """Display the countries list in formatted table.
+
+    Args:
+        countries: List of country dictionaries
+    """
     if not countries:
-        print("No countries found in the database.")
-        input("\nPress Enter to continue...")
+        print("No countries found in the database.\n")
+        input(MSG_PRESS_ENTER_PROMPT)
         return
 
     print(f"{'':<3} {'':<1} {'Country Code':<4} {'Country':<50}")
-    print("-" * 100)
+    print("-" * TABLE_WIDTH)
 
     country_row_template = (
         "{count:>3} {dash:<1} {country_code:<4} {country:<50}"
@@ -347,21 +466,25 @@ def _display_countries_list(countries):
     ))
 
 
-def main_page():
-    """Main Page function."""
+# ============================================================================
+# MAIN PAGE FUNCTIONS
+# ============================================================================
+
+def main_page() -> None:
+    """Main Page function - entry point for the application."""
     while True:
         print(_get_page_header("Main Menu"))
         coin_count = get_data_count()
 
         _display_main_menu(coin_count)
-        choice = input("Enter your choice: ")
+        choice = input(MSG_ENTER_CHOICE)
 
         if not _handle_main_menu_choice(choice, coin_count > 0):
             break
 
 
-def insert_data_page():
-    """Insert Data page."""
+def insert_data_page() -> None:
+    """Insert Data page - allows adding new records."""
     while True:
         print(_get_page_header("Insert Data"))
 
@@ -372,7 +495,7 @@ def insert_data_page():
         print("  4 - Add New Country")
         print("  5 - Back to Main Menu\n")
 
-        choice = input("Enter your choice: ")
+        choice = input(MSG_ENTER_CHOICE)
 
         if choice == "1":
             add_coin_page()
@@ -388,19 +511,23 @@ def insert_data_page():
             print(_invalid_choice_message())
 
 
-def view_coins_page():
-    """View Coins page."""
+def view_coins_page() -> None:
+    """View Coins page - displays all coins in the database."""
     print(_get_page_header("View Coins"))
 
     coins = get_coins_with_details()
 
     _display_coins_list(coins)
 
-    input("\nPress Enter to continue...")
+    input(MSG_PRESS_ENTER_PROMPT)
 
 
-def add_coin_page():
-    """Add New Coin page."""
+# ============================================================================
+# ADD PAGES
+# ============================================================================
+
+def add_coin_page() -> None:
+    """Add New Coin page - collects and saves new coin data."""
     print(_get_page_header("Add New Coin", show_quit_message=True))
 
     try:
@@ -412,14 +539,14 @@ def add_coin_page():
         else:
             print(_failure_message("add a new coin"))
 
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
     except UserCancelledError:
         print(_operation_cancelled_message())
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
 
 
-def add_coin_type_page():
-    """Add New Coin Type page."""
+def add_coin_type_page() -> None:
+    """Add New Coin Type page - collects and saves new coin type data."""
     print(_get_page_header("Add New Coin Type", show_quit_message=True))
 
     try:
@@ -431,14 +558,14 @@ def add_coin_type_page():
         else:
             print(_failure_message("add a new coin type"))
 
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
     except UserCancelledError:
         print(_operation_cancelled_message())
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
 
 
-def add_condition_page():
-    """Add New Condition page."""
+def add_condition_page() -> None:
+    """Add New Condition page - collects and saves new condition data."""
     print(_get_page_header("Add New Condition", show_quit_message=True))
 
     try:
@@ -450,14 +577,14 @@ def add_condition_page():
         else:
             print(_failure_message("add a new condition"))
 
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
     except UserCancelledError:
         print(_operation_cancelled_message())
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
 
 
-def add_country_page():
-    """Add New Country page."""
+def add_country_page() -> None:
+    """Add New Country page - collects and saves new country data."""
     print(_get_page_header("Add New Country", show_quit_message=True))
 
     try:
@@ -475,14 +602,18 @@ def add_country_page():
         else:
             print(_failure_message("add a new country"))
 
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
     except UserCancelledError:
         print(_operation_cancelled_message())
-        input("Press Enter to continue...\n")
+        input(MSG_PRESS_ENTER_PROMPT)
 
 
-def update_data_page():
-    """Update Data page."""
+# ============================================================================
+# UPDATE PAGES
+# ============================================================================
+
+def update_data_page() -> None:
+    """Update Data page - menu for selecting what to update."""
     while True:
         print(_get_page_header("Update Data"))
 
@@ -493,7 +624,7 @@ def update_data_page():
         print("  4 - Update Countries")
         print("  5 - Back to Main Menu\n")
 
-        choice = input("Enter your choice: ")
+        choice = input(MSG_ENTER_CHOICE)
 
         if choice == "1":
             update_coin_page()
@@ -509,167 +640,88 @@ def update_data_page():
             print(_invalid_choice_message())
 
 
-def update_coin_page():
-    """Update Coins page."""
-    page_name = "Update Coins"
-    print(_get_page_header(page_name))
+def update_coin_page() -> None:
+    """Update Coins page - select and update coin records."""
+    def update_coin_operation(coin_id: str) -> Optional[int]:
+        updated_data = get_updated_coin_input(coin_id)
+        if updated_data:
+            return update_coin_in_database(updated_data)
+        return None
 
-    show_list = True  # Flag to control when to display the coin list
-
-    while True:
-        # Display coins list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            coins = get_coins_with_details()
-            _display_coins_list(coins, page_name=page_name)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for coin to update: ")
-            if choice == str(len(coins) + 1):
-                return
-
-            updated_coin_data = get_updated_coin_input(
-                str(coins[int(choice) - 1]["id"]))
-
-            result = update_coin_in_database(updated_coin_data)
-            if result:
-                print(_success_update_message("coin"))
-            else:
-                print(_failure_message("update a coin"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Show list again after successful update
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Update Coins",
+        get_items_func=get_coins_with_details,
+        display_func=lambda coins: _display_coins_list(coins, "Update Coins"),
+        operation_func=update_coin_operation,
+        prompt="Enter number for the coin to update",
+        success_msg=_success_update_message("coin"),
+        failure_msg=_failure_message("update a coin")
+    )
 
 
-def update_coin_type_page():
-    """Update Coin Types page."""
-    print(_get_page_header("Update Coin Types"))
+def update_coin_type_page() -> None:
+    """Update Coin Types page - select and update coin type records."""
+    def update_coin_type_operation(coin_type_id: str) -> Optional[int]:
+        updated_data = get_updated_coin_type_input(coin_type_id)
+        if updated_data:
+            return update_coin_type_in_database(updated_data)
+        return None
 
-    show_list = True
-
-    while True:
-        # Display coin types list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            coin_types = get_coin_types()
-            _display_coin_types_list(coin_types)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for coin type to update: ")
-            if choice == str(len(coin_types) + 1):
-                return
-
-            updated_coin_type_data = get_updated_coin_type_input(
-                str(coin_types[int(choice) - 1]["id"]))
-
-            result = update_coin_type_in_database(updated_coin_type_data)
-            if result:
-                print(_success_update_message("coin type"))
-            else:
-                print(_failure_message("update a coin type"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Show list again after successful update
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Update Coin Types",
+        get_items_func=get_coin_types,
+        display_func=_display_coin_types_list,
+        operation_func=update_coin_type_operation,
+        prompt="Enter number for the coin type to update",
+        success_msg=_success_update_message("coin type"),
+        failure_msg=_failure_message("update a coin type")
+    )
 
 
-def update_condition_page():
-    """Update Conditions page."""
-    print(_get_page_header("Update Conditions"))
+def update_condition_page() -> None:
+    """Update Conditions page - select and update condition records."""
+    def update_condition_operation(condition_id: str) -> Optional[int]:
+        updated_data = get_updated_condition_input(condition_id)
+        if updated_data:
+            return update_condition_in_database(updated_data)
+        return None
 
-    show_list = True
-
-    while True:
-        # Display conditions list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            conditions = get_conditions()
-            _display_conditions_list(conditions)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for condition to update: ")
-            if choice == str(len(conditions) + 1):
-                return
-
-            updated_condition_data = get_updated_condition_input(
-                str(conditions[int(choice) - 1]["id"]))
-
-            result = update_condition_in_database(updated_condition_data)
-            if result:
-                print(_success_update_message("condition"))
-            else:
-                print(_failure_message("update a condition"))
-
-            show_list = True  # Show list again after successful update
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Update Conditions",
+        get_items_func=get_conditions,
+        display_func=_display_conditions_list,
+        operation_func=update_condition_operation,
+        prompt="Enter number for the condition to update",
+        success_msg=_success_update_message("condition"),
+        failure_msg=_failure_message("update a condition")
+    )
 
 
-def update_country_page():
-    """Update Countries page."""
-    print(_get_page_header("Update Countries"))
+def update_country_page() -> None:
+    """Update Countries page - select and update country records."""
+    def update_country_operation(country_id: str) -> Optional[int]:
+        updated_data = get_updated_country_input(country_id)
+        if updated_data:
+            return update_country_in_database(updated_data)
+        return None
 
-    show_list = True
-
-    while True:
-        # Display coin conditions in a formatted table
-        if show_list:
-            # Fetch fresh data from database
-            countries = get_countries()
-            _display_countries_list(countries)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for country to update: ")
-            if choice == str(len(countries) + 1):
-                return
-
-            updated_country_data = get_updated_country_input(
-                str(countries[int(choice) - 1]["id"]))
-
-            result = update_country_in_database(updated_country_data)
-            if result:
-                print(_success_update_message("country"))
-            else:
-                print(_failure_message("update a country"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Show list again after successful update
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Update Countries",
+        get_items_func=get_countries,
+        display_func=_display_countries_list,
+        operation_func=update_country_operation,
+        prompt="Enter number for the country to update",
+        success_msg=_success_update_message("country"),
+        failure_msg=_failure_message("update a country")
+    )
 
 
-def delete_data_page():
-    """Delete Data page."""
+# ============================================================================
+# DELETE PAGES
+# ============================================================================
+
+def delete_data_page() -> None:
+    """Delete Data page - menu for selecting what to delete."""
     while True:
         print(_get_page_header("Delete Data"))
 
@@ -680,7 +732,7 @@ def delete_data_page():
         print("  4 - Delete Countries")
         print("  5 - Back to Main Menu\n")
 
-        choice = input("Enter your choice: ")
+        choice = input(MSG_ENTER_CHOICE)
 
         if choice == "1":
             delete_coin_page()
@@ -693,168 +745,75 @@ def delete_data_page():
         elif choice == "5":
             break  # Go back to main menu
         else:
-            print("** Invalid choice **\n")
-
-
-def delete_coin_page():
-    """Delete Coins page."""
-    page_name = "Delete Coins"
-    print(_get_page_header(page_name))
-
-    show_list = True  # Flag to control when to display the coin list
-
-    while True:
-        # Display coins list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            coins = get_coins_with_details()
-            _display_coins_list(coins, page_name=page_name)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for the coin to delete: ")
-            if choice == str(len(coins) + 1):
-                return
-
-            confirm_delete_coin_input(coins[int(choice) - 1])
-            # If we get here, user typed DELETE (otherwise UserCancelledError was raised)
-            result = delete_coin_from_database(
-                str(coins[int(choice) - 1]["id"]))
-            if result:
-                print(_success_delete_message("coin"))
-            else:
-                print(_failure_message("delete a coin"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Redisplay the list after successful deletion
-        except ValueError:
             print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
 
 
-def delete_coin_type_page():
-    """Delete Coin Types page."""
-    print(_get_page_header("Delete Coin Types"))
+def delete_coin_page() -> None:
+    """Delete Coins page - select and delete coin records."""
+    def delete_coin_operation(coin_id: str) -> Optional[int]:
+        return delete_coin_from_database(coin_id) if confirm_delete_coin_input(
+            get_coin_by_id(coin_id)) else None
 
-    show_list = True  # Flag to control when to display the coin list
-
-    while True:
-        # Display coins list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            coin_types = get_coin_types()
-            _display_coin_types_list(coin_types)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for the coin type to delete: ")
-            if choice == str(len(coin_types) + 1):
-                return
-
-            confirm_delete_coin_type_input(coin_types[int(choice) - 1])
-            # If we get here, user typed DELETE (otherwise UserCancelledError was raised)
-            result = delete_coin_type_from_database(
-                str(coin_types[int(choice) - 1]["id"]))
-            if result:
-                print(_success_delete_message("coin type"))
-            else:
-                print(_failure_message("delete a coin type"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Redisplay the list after successful deletion
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Delete Coins",
+        get_items_func=get_coins_with_details,
+        display_func=lambda coins: _display_coins_list(coins, "Delete Coins"),
+        operation_func=delete_coin_operation,
+        prompt="Enter number for the coin to delete",
+        success_msg=_success_delete_message("coin"),
+        failure_msg=_failure_message("delete a coin")
+    )
 
 
-def delete_condition_page():
-    """Delete Conditions page."""
-    print(_get_page_header("Delete Conditions"))
+def delete_coin_type_page() -> None:
+    """Delete Coin Types page - select and delete coin type records."""
+    def delete_coin_type_operation(coin_type_id: str) -> Optional[int]:
+        return delete_coin_type_from_database(coin_type_id) if confirm_delete_coin_type_input(
+            get_coin_type_by_id(coin_type_id)) else None
 
-    show_list = True  # Flag to control when to display the coin list
-
-    while True:
-        # Display conditions list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            conditions = get_conditions()
-            _display_conditions_list(conditions)
-            show_list = False  # Don't show again unless needed
-
-        try:
-            choice = input("\nEnter number for the condition to delete: ")
-            if choice == str(len(conditions) + 1):
-                return
-
-            confirm_delete_condition_input(conditions[int(choice) - 1])
-            # If we get here, user typed DELETE (otherwise UserCancelledError was raised)
-            result = delete_condition_from_database(
-                str(conditions[int(choice) - 1]["id"]))
-            if result:
-                print(_success_delete_message("condition"))
-            else:
-                print(_failure_message("delete a condition"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Redisplay the list after successful deletion
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Delete Coin Types",
+        get_items_func=get_coin_types,
+        display_func=_display_coin_types_list,
+        operation_func=delete_coin_type_operation,
+        prompt="Enter number for the coin type to delete",
+        success_msg=_success_delete_message("coin type"),
+        failure_msg=_failure_message("delete a coin type")
+    )
 
 
-def delete_country_page():
-    """Delete Countries page."""
-    print(_get_page_header("Delete Countries"))
+def delete_condition_page() -> None:
+    """Delete Conditions page - select and delete condition records."""
+    def delete_condition_operation(condition_id: str) -> Optional[int]:
+        return delete_condition_from_database(condition_id) if confirm_delete_condition_input(
+            get_condition_by_id(condition_id)) else None
 
-    show_list = True
+    _handle_list_operation(
+        page_name="Delete Conditions",
+        get_items_func=get_conditions,
+        display_func=_display_conditions_list,
+        operation_func=delete_condition_operation,
+        prompt="Enter number for the condition to delete",
+        success_msg=_success_delete_message("condition"),
+        failure_msg=_failure_message("delete a condition")
+    )
 
-    while True:
-        # Display countries list when needed (first time or after cancellation)
-        if show_list:
-            # Fetch fresh data from database
-            countries = get_countries()
-            _display_countries_list(countries)
-            show_list = False  # Don't show again unless needed
 
-        try:
-            choice = input("\nEnter number for the country to delete: ")
-            if choice == str(len(countries) + 1):
-                return
+def delete_country_page() -> None:
+    """Delete Countries page - select and delete country records."""
+    def delete_country_operation(country_id: str) -> Optional[int]:
+        return delete_country_from_database(country_id) if confirm_delete_country_input(
+            get_country_by_id(country_id)) else None
 
-            confirm_delete_country_input(countries[int(choice) - 1])
-            # If we get here, user typed DELETE (otherwise UserCancelledError was raised)
-            result = delete_country_from_database(
-                str(countries[int(choice) - 1]["id"]))
-            if result:
-                print(_success_delete_message("country"))
-            else:
-                print(_failure_message("delete a country"))
-
-            input("Press Enter to continue...\n")
-
-            show_list = True  # Redisplay the list after successful deletion
-        except ValueError:
-            print(_invalid_choice_message())
-        except IndexError:
-            print(_invalid_choice_message())
-        except UserCancelledError:
-            print(_operation_cancelled_message())
-            show_list = True  # Redisplay the list after cancellation
+    _handle_list_operation(
+        page_name="Delete Countries",
+        get_items_func=get_countries,
+        display_func=_display_countries_list,
+        operation_func=delete_country_operation,
+        prompt="Enter number for the country to delete",
+        success_msg=_success_delete_message("country"),
+        failure_msg=_failure_message("delete a country")
+    )
 
 
 if __name__ == "__main__":
