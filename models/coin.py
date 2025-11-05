@@ -19,6 +19,7 @@ class Coin(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     Attributes:
         id: Unique identifier for the coin in the database
+        reference_number: Physical label number for coin flip (001-999)
         type_id: Foreign key reference to the coin type (e.g., Morgan Dollar)
         year: Year the coin was minted
         mint_mark: Mint location identifier (e.g., 'S' for San Francisco)
@@ -33,9 +34,10 @@ class Coin(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Initialize Coin with optional attribute values.
 
         Args:
-            **kwargs: Coin attributes (id, type_id, year, mint_mark, etc.)
+            **kwargs: Coin attributes (id, reference_number, type_id, year, mint_mark, etc.)
         """
         self.id = kwargs.get("id", None)
+        self.reference_number = kwargs.get("reference_number", None)
         self.type_id = kwargs.get("type_id", None)
         self.year = kwargs.get("year", None)
         self.mint_mark = kwargs.get("mint_mark", None)

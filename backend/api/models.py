@@ -70,6 +70,7 @@ class Coin(models.Model):
     """Coin model - represents individual coins in the collection."""
 
     id = models.AutoField(primary_key=True)
+    reference_number = models.IntegerField(unique=True, null=True, blank=True)
     type = models.ForeignKey(
         CoinType,
         on_delete=models.PROTECT,  # Don't allow deleting coin types with coins
