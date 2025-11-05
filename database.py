@@ -160,6 +160,7 @@ def get_coins_with_details() -> List[Dict[str, Any]]:
             c.notes,
             c.created_at,
             c.updated_at,
+            ct.id as coin_type_id,
             ct.name as coin_type_name,
             ct.denomination,
             ct.metal,
@@ -284,19 +285,28 @@ def get_coin_types() -> List[Dict[str, Any]]:
 
 
 def get_coin_type_by_id(coin_type_id: int) -> Optional[Dict[str, Any]]:
-    """Get a coin type by its ID.
+    """Get a coin type by its ID with country details.
 
     Args:
         coin_type_id: Unique identifier of the coin type
 
     Returns:
-        Coin type data dictionary or None if not found
+        Coin type data dictionary with country name, or None if not found
     """
-    return _execute_query(
-        "SELECT * FROM coin_types WHERE id = %s",
-        (int(coin_type_id),),
-        fetch_one=True
-    )
+    sql = """
+        SELECT
+            ct.id,
+            ct.name,
+            ct.denomination,
+            ct.country_id,
+            ct.metal,
+            c.name as country_name,
+            c.country_code
+        FROM coin_types ct
+        LEFT JOIN countries c ON ct.country_id = c.id
+        WHERE ct.id = %s
+    """
+    return _execute_query(sql, (int(coin_type_id),), fetch_one=True)
 
 
 def save_coin_type_to_database(coin_type_data: Dict[str, Any]) -> int:

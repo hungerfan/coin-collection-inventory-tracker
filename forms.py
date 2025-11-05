@@ -29,8 +29,8 @@ from constants import DEFAULT_MINT_MARK, CONFIRM_DELETE_TEXT, MSG_INVALID_CHOICE
 class UserCancelledError(Exception):
     """Exception raised when user cancels an input operation."""
 
-    def __init__(self):
-        self.message = "User cancelled the operation"
+    def __init__(self, message: str = "User cancelled the operation"):
+        self.message = message
         super().__init__(self.message)
 
 
@@ -110,9 +110,25 @@ def _validate_positive_float(value_str: str, field_name: str) -> float:
         raise
 
 
+def _validate_not_empty(value_str: str, field_name: str) -> str:
+    """Validate not empty.
+
+    Args:
+        value_str: Value as string
+        field_name: Name of the field for error messages
+
+    Returns:
+        Validated not empty string
+    """
+    if not value_str.strip():
+        raise ValueError(f"{field_name} cannot be empty")
+    return value_str
+
+
 # ============================================================================
 # INPUT HELPERS
 # ============================================================================
+
 
 def _input_with_quit_check(prompt: str, default: Optional[str] = None) -> str:
     """Get input from user and check if they want to quit.
@@ -177,6 +193,9 @@ def _input_validated(
             else:
                 print("Maximum attempts reached.\n")
                 raise UserCancelledError() from e
+
+    # Safety net: if we somehow exit the loop without returning or raising
+    raise UserCancelledError("Maximum validation attempts exceeded")
 
 
 # ============================================================================
@@ -447,7 +466,7 @@ def _select_condition(selected_condition_id: Optional[int] = None) -> int:
     return condition_id
 
 
-def _select_country(selected_country_id: Optional[int] = None) -> int:
+def _select_country(selected_country_id: Optional[int] = None) -> Optional[int]:
     """Allow user to select a country by entering country code.
 
     Args:
@@ -470,19 +489,14 @@ def _select_country(selected_country_id: Optional[int] = None) -> int:
 
     while True:
         try:
-            country_code = _input_with_quit_check(
+            country_code = _input_validated(
                 "Enter coin type country code: (e.g. CA, US, etc...) ",
+                lambda x: _validate_not_empty(x, "Country Code"),
                 default_country_code
             )
-            if country_code is not None:
-                break
-            else:
-                print("Invalid country code. Please try again.")
+            break
         except ValueError:
             print("Please enter a valid country code.")
-        except UserCancelledError:
-            return None
-
     return get_country_id_by_code(country_code)
 
 
@@ -659,6 +673,7 @@ def confirm_delete_coin_type_input(coin_type: Dict[str, Any]) -> str:
     Raises:
         UserCancelledError: If user enters 'quit' or refuses to confirm
     """
+
     print("\n** Type 'DELETE' to delete the following coin type, or 'QUIT' to cancel: **\n")
     print(f"Coin Type ID: {coin_type['id']}")
     print(f"Coin Type Name: {coin_type['name']}")

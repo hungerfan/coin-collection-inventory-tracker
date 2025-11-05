@@ -251,6 +251,7 @@ def _display_coins_list(coins: List[Dict[str, Any]], page_name: Optional[str] = 
 
     cnt = 0
     estimated_value = 0
+    melt_value = 0
 
     for i, coin in enumerate(coins, 0):
         # Format the data for display
@@ -262,7 +263,8 @@ def _display_coins_list(coins: List[Dict[str, Any]], page_name: Optional[str] = 
         value = (
             f"${float(coin['value_estimate']):.2f}" if coin["value_estimate"] else "N/A"
         )
-        estimated_value += float(coin['value_estimate'])
+        estimated_value += float(coin['value_estimate']
+                                 ) if coin["value_estimate"] else 0.00
 
         country = coin["country_name"] or "Unknown"
         received_from = coin["acquired_from"] or "N/A"
@@ -280,6 +282,11 @@ def _display_coins_list(coins: List[Dict[str, Any]], page_name: Optional[str] = 
 
         cnt = i + 1
 
+        # Calculate melt value for silver coins - hardcoded for now until we have a
+        # better way to calculate melt value
+        melt_value += (35.00 * int(coin["quantity"])
+                       ) if coin["metal"] == "Silver" else 0.00
+
         print(
             coin_row_template.format(
                 count=cnt,
@@ -294,8 +301,6 @@ def _display_coins_list(coins: List[Dict[str, Any]], page_name: Optional[str] = 
                 received_from=received_from
             )
         )
-
-    melt_value = 35.00 * cnt
 
     if page_name is not None:
         print(coin_row_template.format(
