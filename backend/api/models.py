@@ -16,6 +16,7 @@ class Country(models.Model):
 
     class Meta:
         db_table = 'countries'
+        managed = False  # Table managed by CLI app, not Django
         ordering = ['name']
         verbose_name_plural = 'Countries'
 
@@ -40,6 +41,7 @@ class CoinType(models.Model):
 
     class Meta:
         db_table = 'coin_types'
+        managed = False  # Table managed by CLI app, not Django
         ordering = ['name']
 
     def __str__(self):
@@ -56,6 +58,7 @@ class Condition(models.Model):
 
     class Meta:
         db_table = 'conditions'
+        managed = False  # Table managed by CLI app, not Django
         ordering = ['name']
 
     def __str__(self):
@@ -95,6 +98,7 @@ class Coin(models.Model):
 
     class Meta:
         db_table = 'coins'
+        managed = False  # Table managed by CLI app, not Django
         ordering = ['-created_at']  # Newest first
 
     def __str__(self):
