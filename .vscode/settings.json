@@ -15,7 +15,9 @@
         "import sys; sys.path.append('${workspaceFolder}/backend')"
     ],
     "python.analysis.diagnosticSeverityOverrides": {
-        "reportMissingImports": "none"
+        "reportMissingImports": "none",
+        "reportGeneralTypeIssues": "none",
+        "reportOptionalMemberAccess": "none"
     }
 }
 
