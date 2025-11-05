@@ -26,3 +26,9 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# AI-generated tutorial files
+COMMANDS.md
+ENV_EXPLAINED.txt
+ENVIRONMENT_SETUP.md
+GETTING_STARTED.md
+QUICK_START.txt
