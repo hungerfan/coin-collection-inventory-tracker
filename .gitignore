@@ -24,6 +24,10 @@ logs/
 # IDE
 .idea/
 
-# Project notes
+# Project notes and AI-generated docs
 project_notes.txt
 *.mmd
+DJANGO_SETUP.md
+PHASE_1_COMPLETE.md
+REFACTORING_SUMMARY.md
+WEB_APP_ROADMAP.md
