@@ -1,0 +1,21 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/backend",
+        "${workspaceFolder}/backend/venv/Lib/site-packages"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/backend",
+        "${workspaceFolder}/backend/venv/Lib/site-packages"
+    ],
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintArgs": [
+        "--init-hook",
+        "import sys; sys.path.append('${workspaceFolder}/backend')"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    }
+}
+
