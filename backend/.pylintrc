@@ -1,0 +1,33 @@
+[MASTER]
+# Add backend directory to Python path
+init-hook='import sys; sys.path.append(".")'
+
+[MESSAGES CONTROL]
+# Disable import-error for Django imports
+disable=
+    import-error,
+    no-name-in-module,
+    no-member
+
+[TYPECHECK]
+# Django-specific ignores
+generated-members=
+    objects,
+    DoesNotExist,
+    id,
+    pk,
+    _meta,
+    MultipleObjectsReturned
+
+# Ignore missing imports for these packages
+ignored-modules=
+    django,
+    rest_framework
+
+[VARIABLES]
+# Allow Django-style variable names
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__)|([a-z_][a-z0-9_]*))$
+
+
+
+

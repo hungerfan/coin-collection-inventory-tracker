@@ -1,0 +1,102 @@
+===============================================
+ENVIRONMENT VARIABLES - SIMPLE EXPLANATION
+===============================================
+
+WHY NOT DUPLICATE DATABASE CREDENTIALS?
+---------------------------------------
+
+Before (Duplicated):
+  Root .env:          backend/.env:
+  ┌─────────────┐     ┌─────────────┐
+  │ DB_HOST     │     │ DB_HOST     │  😐 Same!
+  │ DB_USER     │     │ DB_USER     │  😐 Same!
+  │ DB_PASSWORD │     │ DB_PASSWORD │  😐 Same!
+  │ DB_NAME     │     │ DB_NAME     │  😐 Same!
+  └─────────────┘     │ SECRET_KEY  │
+                      │ DEBUG       │
+                      └─────────────┘
+
+After (Shared):
+  Root .env:          backend/.env:
+  ┌─────────────┐     ┌─────────────┐
+  │ DB_HOST     │---->│ (reads from │  ✅ No duplication!
+  │ DB_USER     │     │  root .env) │
+  │ DB_PASSWORD │     │             │
+  │ DB_NAME     │     │ SECRET_KEY  │  ✅ Django-only
+  └─────────────┘     │ DEBUG       │  ✅ Django-only
+                      └─────────────┘
+
+
+HOW IT WORKS:
+-------------
+
+1. Django starts up
+2. Reads root .env for database credentials
+3. Reads backend/.env for Django settings
+4. Combines both!
+
+
+WHAT YOU NEED TO DO:
+--------------------
+
+Option A: Minimal (Recommended)
+  ✅ Keep your root .env (already exists)
+  ✅ Create backend/.env with just:
+     SECRET_KEY=my-dev-key
+     DEBUG=True
+
+Option B: Everything in backend/.env
+  ✅ Create backend/.env with everything
+     (duplicates DB credentials)
+
+
+WHICH FILES GO WHERE:
+---------------------
+
+Root folder:
+  .env              # Database credentials
+  main.py           # CLI app
+  database.py
+
+Backend folder:
+  .env              # Django-only settings (optional)
+  config/
+    settings.py     # Reads BOTH .env files!
+  api/
+
+
+BENEFITS:
+---------
+✅ One place to update database password
+✅ Both CLI app and Django use same credentials
+✅ No duplication
+✅ Less confusion
+
+
+EXAMPLE:
+--------
+
+Root .env:
+  DB_HOST=localhost
+  DB_USER=myuser
+  DB_PASSWORD=secret123
+  DB_NAME=coin_tracker
+  DB_PORT=3306
+
+backend/.env:
+  SECRET_KEY=django-secret-key-xyz
+  DEBUG=True
+  ALLOWED_HOSTS=localhost,127.0.0.1
+
+Django combines both automatically!
+
+
+TESTING:
+--------
+
+python manage.py check
+
+If this works, your configuration is correct!
+
+===============================================
+
