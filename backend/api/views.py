@@ -76,7 +76,7 @@ class CoinViewSet(viewsets.ModelViewSet):
             return CoinDetailSerializer
         return CoinSerializer
 
-    @action(detail=False, methods=['get'], url_path='year/(?P<year>\d+)')
+    @action(detail=False, methods=['get'], url_path=r'year/(?P<year>\d+)')
     def by_year(self, request, year: int):
         """
         Get all coins for a given year.
@@ -93,7 +93,7 @@ class CoinViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='year_range/(?P<start_year>\d+)/(?P<end_year>\d+)')
+    @action(detail=False, methods=['get'], url_path=r'year_range/(?P<start_year>\d+)/(?P<end_year>\d+)')
     def by_year_range(self, request, start_year: int, end_year: int):
         """
         Get all coins for a given year range.
