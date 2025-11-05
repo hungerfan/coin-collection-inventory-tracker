@@ -4,10 +4,10 @@ API Views for coin collection tracker.
 ViewSets provide CRUD operations for models automatically.
 Additional views provide custom endpoints like statistics.
 """
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from decimal import Decimal
 
 from .models import Coin, CoinType, Condition, Country
@@ -118,16 +118,21 @@ def stats_view(request):
     Get collection statistics.
 
     Returns:
-    - Total number of coins
+    - Total number of coin records
+    - Total quantity (sum of all coin quantities)
     - Total estimated value
-    - Total melt value (estimated at $35 per coin)
+    - Total melt value (estimated at $35 per SILVER coin quantity only)
     - Number of unique coin types
     - Number of countries
     - Number of conditions
 
+    Note: Melt value only includes silver coins. Future enhancement will
+    calculate based on actual metal content and current market prices.
+
     Example response:
     {
         "total_coins": 19,
+        "total_quantity": 25,
         "total_estimated_value": "450.00",
         "total_melt_value": "665.00",
         "coin_types_count": 5,
@@ -139,14 +144,21 @@ def stats_view(request):
     coins = Coin.objects.all()
     total_coins = coins.count()
 
-    # Sum of all coin value estimates
-    value_aggregate = coins.aggregate(
-        total_value=Sum('value_estimate')
+    # Sum of all coin value estimates and quantities
+    aggregates = coins.aggregate(
+        total_value=Sum('value_estimate'),
+        total_quantity=Sum('quantity')
     )
-    total_estimated_value = value_aggregate['total_value'] or Decimal('0.00')
+    total_estimated_value = aggregates['total_value'] or Decimal('0.00')
+    total_quantity = aggregates['total_quantity'] or 0
 
-    # Melt value calculation ($35 per coin as in your CLI app)
-    total_melt_value = Decimal('35.00') * total_coins
+    # Melt value calculation - only for silver coins ($35 per silver coin)
+    # Matches CLI logic: filters for metal == "Silver"
+    # TODO: Future enhancement - calculate based on actual silver content and current prices
+    silver_coins = coins.filter(type__metal='Silver')
+    silver_quantity = silver_coins.aggregate(
+        total=Sum('quantity'))['total'] or 0
+    total_melt_value = Decimal('35.00') * silver_quantity
 
     # Count unique entities
     coin_types_count = CoinType.objects.count()
@@ -155,7 +167,8 @@ def stats_view(request):
 
     # Prepare response data
     stats_data = {
-        'total_coins': total_coins,
+        'total_coins': total_coins,  # Number of coin records
+        'total_quantity': total_quantity,  # Sum of all coin quantities
         'total_estimated_value': total_estimated_value,
         'total_melt_value': total_melt_value,
         'coin_types_count': coin_types_count,

@@ -30,7 +30,8 @@ class CoinTypeSerializer(serializers.ModelSerializer):
     """Serializer for CoinType model."""
 
     country_name = serializers.CharField(source='country.name', read_only=True)
-    country_code = serializers.CharField(source='country.country_code', read_only=True)
+    country_code = serializers.CharField(
+        source='country.country_code', read_only=True)
 
     class Meta:
         model = CoinType
@@ -51,10 +52,14 @@ class CoinSerializer(serializers.ModelSerializer):
 
     # Read-only fields for displaying related data
     coin_type_name = serializers.CharField(source='type.name', read_only=True)
-    condition_name = serializers.CharField(source='condition.name', read_only=True)
-    country_name = serializers.CharField(source='type.country.name', read_only=True)
-    country_code = serializers.CharField(source='type.country.country_code', read_only=True)
-    denomination = serializers.CharField(source='type.denomination', read_only=True)
+    condition_name = serializers.CharField(
+        source='condition.name', read_only=True)
+    country_name = serializers.CharField(
+        source='type.country.name', read_only=True)
+    country_code = serializers.CharField(
+        source='type.country.country_code', read_only=True)
+    denomination = serializers.CharField(
+        source='type.denomination', read_only=True)
     metal = serializers.CharField(source='type.metal', read_only=True)
 
     class Meta:
@@ -91,16 +96,19 @@ class CoinDetailSerializer(CoinSerializer):
     condition_details = ConditionSerializer(source='condition', read_only=True)
 
     class Meta(CoinSerializer.Meta):
-        fields = CoinSerializer.Meta.fields + ['type_details', 'condition_details']
+        fields = CoinSerializer.Meta.fields + \
+            ['type_details', 'condition_details']
 
 
 class StatsSerializer(serializers.Serializer):
     """Serializer for collection statistics."""
 
     total_coins = serializers.IntegerField()
-    total_estimated_value = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_melt_value = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_quantity = serializers.IntegerField()
+    total_estimated_value = serializers.DecimalField(
+        max_digits=10, decimal_places=2)
+    total_melt_value = serializers.DecimalField(
+        max_digits=10, decimal_places=2)
     coin_types_count = serializers.IntegerField()
     countries_count = serializers.IntegerField()
     conditions_count = serializers.IntegerField()
-
