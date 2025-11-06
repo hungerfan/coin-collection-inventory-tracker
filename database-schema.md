@@ -2,6 +2,7 @@
 erDiagram
     coins {
         int id PK
+        int reference_number UK "Physical label number (001-999)"
         int type_id FK
         int year
         varchar mint_mark
