@@ -37,6 +37,7 @@ class CoinAdmin(admin.ModelAdmin):
     """Admin interface for Coin model."""
     list_display = [
         'id',
+        'reference_number',
         'type',
         'year',
         'mint_mark',
@@ -46,14 +47,15 @@ class CoinAdmin(admin.ModelAdmin):
         'created_at'
     ]
     list_filter = ['type', 'condition', 'year']
-    search_fields = ['type__name', 'year', 'mint_mark', 'notes']
+    search_fields = ['reference_number',
+                     'type__name', 'year', 'mint_mark', 'notes']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
 
     # Group fields in the form
     fieldsets = (
         ('Coin Information', {
-            'fields': ('type', 'year', 'mint_mark')
+            'fields': ('reference_number', 'type', 'year', 'mint_mark')
         }),
         ('Condition and Value', {
             'fields': ('condition', 'quantity', 'value_estimate')
@@ -62,4 +64,3 @@ class CoinAdmin(admin.ModelAdmin):
             'fields': ('acquired_from', 'notes')
         }),
     )
-
