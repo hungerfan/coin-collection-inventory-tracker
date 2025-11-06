@@ -115,6 +115,19 @@ def get_data_count() -> int:
     return count
 
 
+def get_next_reference_number() -> int:
+    """Get the next available reference number for a new coin.
+
+    Returns:
+        Next sequential reference number (1 if no coins exist)
+    """
+    result = _execute_query(
+        "SELECT COALESCE(MAX(reference_number), 0) + 1 as next_ref FROM coins",
+        fetch_one=True
+    )
+    return result["next_ref"]
+
+
 def get_coins() -> List[Dict[str, Any]]:
     """Get all coins from the database.
 
@@ -190,12 +203,18 @@ def save_coin_to_database(coin_data: Dict[str, Any]) -> int:
         pymysql.Error: If insert fails
     """
     logger.debug("Saving coin data: %s", coin_data)
+
+    # Auto-assign next reference number if not provided
+    if "reference_number" not in coin_data or coin_data["reference_number"] is None:
+        coin_data["reference_number"] = get_next_reference_number()
+
     sql = (
-        "INSERT INTO coins (type_id, year, mint_mark, condition_id, quantity, "
+        "INSERT INTO coins (reference_number, type_id, year, mint_mark, condition_id, quantity, "
         "value_estimate, acquired_from, notes, created_at) VALUES "
-        "(%s, %s, %s, %s, %s, %s, %s, %s, NOW())"
+        "(%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())"
     )
     params = (
+        coin_data["reference_number"],
         coin_data["type_id"],
         coin_data["year"],
         coin_data["mint_mark"],
@@ -206,7 +225,8 @@ def save_coin_to_database(coin_data: Dict[str, Any]) -> int:
         coin_data["notes"]
     )
     coin_id = _execute_query(sql, params, query_type="INSERT")
-    logger.info("Coin data saved to database with ID: %s", coin_id)
+    logger.info("Coin data saved to database with ID: %s, Reference: #%03d",
+                coin_id, coin_data["reference_number"])
     return coin_id
 
 

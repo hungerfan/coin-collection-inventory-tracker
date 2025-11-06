@@ -66,6 +66,7 @@ class CoinSerializer(serializers.ModelSerializer):
         model = Coin
         fields = [
             'id',
+            'reference_number',
             'type',
             'coin_type_name',
             'year',
