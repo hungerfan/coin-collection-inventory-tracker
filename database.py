@@ -134,7 +134,7 @@ def get_coins() -> List[Dict[str, Any]]:
     Returns:
         List of coin dictionaries
     """
-    return _execute_query("SELECT * FROM coins", fetch_one=False)
+    return _execute_query("SELECT * FROM coins ORDER BY reference_number ASC", fetch_one=False)
 
 
 def get_coin_by_id(coin_id: int) -> Optional[Dict[str, Any]]:
@@ -165,6 +165,7 @@ def get_coins_with_details() -> List[Dict[str, Any]]:
     sql = """
         SELECT
             c.id,
+            c.reference_number,
             c.year,
             c.mint_mark,
             c.quantity,
@@ -185,7 +186,7 @@ def get_coins_with_details() -> List[Dict[str, Any]]:
         LEFT JOIN coin_types ct ON c.type_id = ct.id
         LEFT JOIN conditions cond ON c.condition_id = cond.id
         LEFT JOIN countries country ON ct.country_id = country.id
-        ORDER BY c.id
+        ORDER BY c.reference_number ASC
     """
     return _execute_query(sql, fetch_one=False)
 

@@ -42,7 +42,7 @@ class CoinType(models.Model):
     class Meta:
         db_table = 'coin_types'
         managed = False  # Table managed by CLI app, not Django
-        ordering = ['name']
+        ordering = ['country__name', 'name']
 
     def __str__(self):
         """String representation."""
@@ -59,7 +59,7 @@ class Condition(models.Model):
     class Meta:
         db_table = 'conditions'
         managed = False  # Table managed by CLI app, not Django
-        ordering = ['name']
+        ordering = ['id']
 
     def __str__(self):
         """String representation."""
@@ -82,7 +82,8 @@ class Coin(models.Model):
         db_column='type_id',
         related_name='coins'
     )
-    year = models.IntegerField(null=True, blank=True)
+    # Required in forms, optional in DB
+    year = models.IntegerField(null=True, blank=False)
     mint_mark = models.CharField(max_length=10, null=True, blank=True)
     condition = models.ForeignKey(
         Condition,
@@ -106,6 +107,16 @@ class Coin(models.Model):
         db_table = 'coins'
         managed = False  # Table managed by CLI app, not Django
         ordering = ['-created_at']  # Newest first
+
+    def save(self, *args, **kwargs):
+        """Override save to auto-assign reference_number if not provided."""
+        if self.reference_number is None:
+            # Get the next available reference number
+            from django.db.models import Max
+            max_ref = Coin.objects.aggregate(Max('reference_number'))[
+                'reference_number__max']
+            self.reference_number = (max_ref or 0) + 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         """String representation."""
