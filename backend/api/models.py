@@ -42,7 +42,7 @@ class CoinType(models.Model):
     class Meta:
         db_table = 'coin_types'
         managed = False  # Table managed by CLI app, not Django
-        ordering = ['country__name', 'name']
+        ordering = ['country__name', 'denomination', 'name']
 
     def __str__(self):
         """String representation."""

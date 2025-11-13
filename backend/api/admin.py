@@ -29,7 +29,7 @@ class CoinTypeAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'denomination', 'country', 'metal']
     list_filter = ['country', 'metal']
     search_fields = ['name', 'denomination']
-    ordering = ['country__name', 'name']
+    ordering = ['country__name', 'denomination', 'name']
 
 
 @admin.register(Coin)
