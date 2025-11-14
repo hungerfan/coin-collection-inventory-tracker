@@ -20,7 +20,7 @@ class ConditionAdmin(admin.ModelAdmin):
     """Admin interface for Condition model."""
     list_display = ['id', 'name', 'description']
     search_fields = ['name', 'description']
-    ordering = ['name']
+    ordering = ['id']
 
 
 @admin.register(CoinType)
@@ -29,7 +29,7 @@ class CoinTypeAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'denomination', 'country', 'metal']
     list_filter = ['country', 'metal']
     search_fields = ['name', 'denomination']
-    ordering = ['name']
+    ordering = ['country__name', 'denomination', 'name']
 
 
 @admin.register(Coin)
@@ -37,6 +37,7 @@ class CoinAdmin(admin.ModelAdmin):
     """Admin interface for Coin model."""
     list_display = [
         'id',
+        'reference_number',
         'type',
         'year',
         'mint_mark',
@@ -46,14 +47,16 @@ class CoinAdmin(admin.ModelAdmin):
         'created_at'
     ]
     list_filter = ['type', 'condition', 'year']
-    search_fields = ['type__name', 'year', 'mint_mark', 'notes']
+    search_fields = ['reference_number',
+                     'type__name', 'year', 'mint_mark', 'notes']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
 
     # Group fields in the form
     fieldsets = (
         ('Coin Information', {
-            'fields': ('type', 'year', 'mint_mark')
+            'fields': ('reference_number', 'type', 'year', 'mint_mark'),
+            'description': 'Leave Reference # blank to auto-assign next number'
         }),
         ('Condition and Value', {
             'fields': ('condition', 'quantity', 'value_estimate')
@@ -62,4 +65,3 @@ class CoinAdmin(admin.ModelAdmin):
             'fields': ('acquired_from', 'notes')
         }),
     )
-
