@@ -106,7 +106,8 @@ class Coin(models.Model):
     class Meta:
         db_table = 'coins'
         managed = False  # Table managed by CLI app, not Django
-        ordering = ['-created_at']  # Newest first
+        # Based off custom reference number field assigned to coins
+        ordering = ['reference_number']
 
     def save(self, *args, **kwargs):
         """Override save to auto-assign reference_number if not provided."""

@@ -160,10 +160,11 @@ def stats_view(request):
         total=Sum('quantity'))['total'] or 0
     total_melt_value = Decimal('35.00') * silver_quantity
 
-    # Count unique entities
-    coin_types_count = CoinType.objects.count()
-    countries_count = Country.objects.count()
-    conditions_count = Condition.objects.count()
+    # Count unique entities based on actual coins in collection
+    # Use distinct() to count only coin types, countries, and conditions that are actually used
+    coin_types_count = coins.values('type').distinct().count()
+    countries_count = coins.values('type__country').distinct().count()
+    conditions_count = coins.values('condition').distinct().count()
 
     # Prepare response data
     stats_data = {
